@@ -34,15 +34,3 @@ void int_sort_arr(int arr[],size_t n){
     }
   }
 }
-
-int main(){
-  int arr[] = {2,3,1,2,4,5,6,3,4,6};
-  size_t n = sizeof(arr)/sizeof(arr[0]);
-  for(int i = 0;i < n;i++){
-    printf("%d ",arr[i]);
-  }
-  puts("\n");
-  int_sort_arr(arr,n);
-  for(int i = 0;i < n;printf("%d ",arr[i++]));
-  return 0;
-}
