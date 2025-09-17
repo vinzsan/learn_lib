@@ -4,9 +4,12 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <stdatomic.h>
+#include <pthread.h>
 #include <time.h>
 
 typedef char ALIGN[16];
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef union {
   struct{
@@ -88,6 +91,7 @@ NODE *alloc_filter(size_t size){
   //NODE *node = NULL;
   size_t n = (size + 8 - 1) & ~(8 - 1);
   if(size < 1024){
+    pthread_mutex_lock(&lock);
     NODE *node = malloc(sizeof(NODE) + n);
     if(node == NULL){
       return NULL;
@@ -96,9 +100,11 @@ NODE *alloc_filter(size_t size){
     node->OwO.ptr = (void *)((char *)node + sizeof(NODE));
     node->OwO.size = n;
     node->OwO._flags = 0;
+    pthread_mutex_unlock(&lock);
     return node->OwO.ptr;
   }
   else{
+    pthread_mutex_lock(&lock);
     NODE *node = _mmap(NULL,sizeof(NODE) + n,PROT_WRITE|PROT_READ,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
     if(node == (void *)-1){
       return NULL;
@@ -106,6 +112,7 @@ NODE *alloc_filter(size_t size){
     node->OwO.ptr = (void *)((char *)node + sizeof(NODE));
     node->OwO.size = n;
     node->OwO._flags = 1;
+    pthread_mutex_unlock(&lock);
     return node->OwO.ptr;
   }
 }
@@ -178,28 +185,59 @@ void ptr_sort_arr(int *arr,size_t n){
     }
   }
 }
+/* convert integer to a string/char *
+ * with modulus and division,not accurate TwT*/
+char *int_to_string(long val){
+  static char buffer[32];
+  char *ptr = buffer + sizeof(buffer) - 1;
+  int neg_val = (val < 0);
+  if(neg_val) val = -val;
+  do{
+    *--ptr = '0' + (val % 10);
+    val /= 10;
+  } while(val > 0);
+  if(neg_val) *--ptr = '-';
+  return ptr;
+}
+
+void *thread(void *args){
+  char *ptr = (char *)alloc_filter(1024);
+  //sleep(2);
+  deallocate(ptr);
+  return NULL;
+}
 
 //void 
 __attribute__((visibility("hidden"),used))
 int main(){
   srand(time(NULL));
+  pthread_t tid;
+  pthread_create(&tid,NULL,thread,NULL);
   char *ptr = (char *)alloc_filter(1024);
   char *header = "Hello world\n";
   memcopy(ptr,header,stlen(header));
   printf("%s",ptr);
+  NODE *seek = (NODE *)((char *)ptr - sizeof(NODE));
+  printf("size : %zu\nalamat memory : %p\nmemory flags : %d = %s\n",seek->OwO.size,seek->OwO.ptr,seek->OwO._flags,seek->OwO._flags == 0 ? "malloc" : "mmap");
 
   printf("%f\n",fast_div(50.0,5.0));
   print("Hello world\n");
 
-  int arr[10];
-  int size = sizeof(arr)/sizeof(arr[0]);
-  for(int i = 0;i < size;arr[i++] = rand() % 50);
-  for(int i = 0;i < size;printf("%d ",arr[i++]));
+  printf("%s\n",int_to_string(-120));
 
-  int_sort_arr(arr,size);
+  int *arr = (int *)alloc_filter(10 * sizeof(int));
+  //int size = sizeof(arr)/sizeof(arr[0]);
+  int size = 10;
+  for(int i = 0;i < size;*(arr + i++) = rand() % 50);
+  for(int i = 0;i < size;printf("%d ",*(arr + i++)));
+
+  //int_sort_arr(arr,size);
+  ptr_sort_arr(arr,size);
 
   puts("\n");
-  for(int i = 0;i < size;printf("%d ",arr[i++]));
+  for(int i = 0;i < size;printf("%d ",*(arr + i++)));
+  pthread_join(tid,NULL);
+  deallocate(arr);
   deallocate(ptr);
   return 0;
 }
