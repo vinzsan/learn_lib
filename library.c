@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <time.h>
 
 typedef char ALIGN[16];
 
@@ -181,12 +182,24 @@ void ptr_sort_arr(int *arr,size_t n){
 //void 
 __attribute__((visibility("hidden"),used))
 int main(){
+  srand(time(NULL));
   char *ptr = (char *)alloc_filter(1024);
   char *header = "Hello world\n";
   memcopy(ptr,header,stlen(header));
   printf("%s",ptr);
+
   printf("%f\n",fast_div(50.0,5.0));
-  print("Hello world");
+  print("Hello world\n");
+
+  int arr[10];
+  int size = sizeof(arr)/sizeof(arr[0]);
+  for(int i = 0;i < size;arr[i++] = rand() % 50);
+  for(int i = 0;i < size;printf("%d ",arr[i++]));
+
+  int_sort_arr(arr,size);
+
+  puts("\n");
+  for(int i = 0;i < size;printf("%d ",arr[i++]));
   deallocate(ptr);
   return 0;
 }
