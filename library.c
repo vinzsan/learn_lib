@@ -67,6 +67,22 @@ int _munmap(void *ptr,size_t size){
   return (int)retval;
 }
 
+int _write(int fd,char *restrict src,size_t size){
+  long retval = 0;
+  __asm__ __volatile__(
+    "movq $1,%%rax\n\t"
+    "movq %1,%%rdi\n\t"
+    "movq %2,%%rsi\n\t"
+    "movq %3,%%rdx\n\t"
+    "syscall\n\t"
+    "movq %%rax,%0"
+    :"=r"(retval)
+    :"r"((long)fd),"r"(src),"r"(size)
+    :"rax","rdi","rsi","rdx","memory"
+  );
+  return (int)retval;
+}
+
 NODE *alloc_filter(size_t size){
   //NODE *node = NULL;
   size_t n = (size + 8 - 1) & ~(8 - 1);
@@ -108,6 +124,10 @@ size_t stlen(char *restrict src){
   size_t n = 0;
   for(;n[src];n++);
   return n;
+}
+
+int print(char *restrict str){
+  return _write(STDOUT_FILENO,str,stlen(str));
 }
 
 void *memst(void *restrict ptr,int s,size_t n){
@@ -166,6 +186,7 @@ int main(){
   memcopy(ptr,header,stlen(header));
   printf("%s",ptr);
   printf("%f\n",fast_div(50.0,5.0));
+  print("Hello world");
   deallocate(ptr);
   return 0;
 }
