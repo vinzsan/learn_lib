@@ -8,6 +8,11 @@
 #include <pthread.h>
 #include <time.h>
 
+__asm__(".att_syntax\n");
+__asm__(".align 16\n");
+
+__attribute__((section(".data"))) char string[] = "Hello nigger\n";
+
 typedef char ALIGN[16];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -208,20 +213,40 @@ void *thread(void *args){
 }
 
 //void 
-__attribute__((visibility("hidden"),used))
+__attribute__((visibility("hidden"),used,section(".text")))
 int main(){
   srand(time(NULL));
   pthread_t tid;
   pthread_create(&tid,NULL,thread,NULL);
   char *ptr = (char *)alloc_filter(1024);
   char *header = "Hello world\n";
+  //char *addr = (char *)0x0000000000004068;
+  __asm__ __volatile__(
+    ".intel_syntax noprefix\n\t"
+    "mov rax,1\n\t"
+    "mov rdi,1\n\t"
+    "lea rsi,[rip + string]\n\t"
+    "mov rdx,13\n\t"
+    "syscall\n\t"
+    ".att_syntax"
+    :::"rax","rdi","rsi","rdx"
+  );
   memcopy(ptr,header,stlen(header));
   printf("%s",ptr);
   NODE *seek = (NODE *)((char *)ptr - sizeof(NODE));
   printf("size : %zu\nalamat memory : %p\nmemory flags : %d = %s\n",seek->OwO.size,seek->OwO.ptr,seek->OwO._flags,seek->OwO._flags == 0 ? "malloc" : "mmap");
 
   printf("%f\n",fast_div(50.0,5.0));
+  int counter = 10;
+__asm__ __volatile__("L01:");
   print("Hello world\n");
+  counter--;
+  if(counter == 0){
+    __asm__ __volatile__(".intel_syntax noprefix\n\tjmp done\n\t");
+  }
+  __asm__ __volatile__("jmp L01\n\t.att_syntax\n\t");
+
+__asm__ __volatile__("done:");
 
   printf("%s\n",int_to_string(-120));
 
